@@ -27,11 +27,13 @@ public class TheBot extends PircBot {
     private static final Map<String, LinkedList<String>> laterMap =
             new HashMap<String, LinkedList<String>>();
     private static final LinkedList<String> karmaQ = new LinkedList<String>();
+    private static final String NICK = "MrDurden";
+    private static final String PASS = "";//password here
 
     public TheBot() {
-        this.setName("MrDurden");
-        this.setLogin("MrDurden");
-        sendMessage("NickServ", "identify gaysian");
+        this.setName(NICK);
+        this.setLogin(NICK);
+        sendMessage("NickServ", "identify " + PASS);
         initRoul();
         initKarma();
         initRoulGun();
@@ -40,7 +42,7 @@ public class TheBot extends PircBot {
     @Override
     protected void onConnect() {
         super.onConnect();
-        changeNick("MrDurden");
+        changeNick(NICK);
     }
 
     @Override
@@ -155,7 +157,7 @@ public class TheBot extends PircBot {
         if(message.equals("disconnect") && admins.contains(sender)){
             disconnect();
         }else if(message.equals("disconnect") && !admins.contains(sender)){
-            sendMessage(sender, "Eat cocks. You're not the boss of me.");
+            sendMessage(sender, "You're not my admin.");
         }
     }
 
@@ -233,7 +235,7 @@ public class TheBot extends PircBot {
             }
             if(message.startsWith("clear")){
                 if(!admins.contains(sender)){
-                    sendMessage(channel, "Eat cocks. You're not the boss of me.");
+                    sendMessage(channel, "You're not my admin.");
                 }else{
                     String[] parts = message.split(" ");
                     for(String part : parts){
@@ -378,13 +380,6 @@ public class TheBot extends PircBot {
                 }else{
                     karmaQ.add(name);
                 }
-            }else if(name.equals("xander")){
-                if(karmaAdd > 0){
-                    sendMessage(channel, "Does not compute.");
-                }else{
-                    sendMessage(channel, "xander can't have less karma than he does now");
-                }
-                return;
             }else{
                  name += message.charAt(message.length() - 1);
                 if(karmaQ.size() > 5){
