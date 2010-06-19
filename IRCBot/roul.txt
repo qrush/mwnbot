@@ -1,0 +1,8 @@
+digijohn	22 7
+prokop_home	21 10
+ophanin_home	1 1
+prokop_laptop	15 6
+mwn3d	20 3
+daliu_lab	9 2
+ophanin_lab	4 1
+digiP9	2 0

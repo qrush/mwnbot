@@ -1,0 +1,14 @@
+!xander	0
+xander	-2147483648
+jefftk	1
+kdtong	0
+daliu_lab	0
+ophanin_lab	-4
+digiP9	-1
+jeftk	-1
+prokop_laptop	-1
+jonszy	2
+mwn3d	1
+Bit	19
+jefftk-dev	1
+the_universe	1
