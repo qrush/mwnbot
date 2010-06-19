@@ -429,7 +429,6 @@ public class TheBot extends PircBot {
         } catch (IOException ex) {
             System.err.println("Error reading karma file: " + ex.getMessage());
         }
-        karmaMap.put("xander", Integer.MIN_VALUE);
         TimerTask task = new TimerTask() {
             public void run() {
                 if (!karmaQ.isEmpty()) {
