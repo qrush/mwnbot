@@ -107,7 +107,7 @@ public class TheBot extends PircBot {
             String[] parts = message.split(" ");
             if (parts.length < 2 || parts[1].equals("help")) {
                 sendMessage(sender, "Usage: !help <command>.");
-                sendMessage(sender, "Commands: roulette, rstats, reload"
+                sendMessage(sender, "Commands: roulette, rstats, reload,"
                         + " coin, later, karma, clear, other.");
                 return;
             }
@@ -200,12 +200,12 @@ public class TheBot extends PircBot {
                 RoulStat senderStat = roulMap.get(sender);
                 sendMessage(channel, "Firing chamber " + (currChamber + 1) + " of 6...");
                 if(roulGun[currChamber++]){
-                    sendMessage(channel, "*Bang!*");
-                    senderStat.death();
+                    sendMessage(channel, "*Bang!* " + sender + " dies.");
+                    senderStat.death(currChamber);
                     initRoulGun();
                     sendMessage(channel, "Reloaded");
                 }else{
-                    sendMessage(channel, "*Click*");
+                    sendMessage(channel, "*Click* " + sender +" lives.");
                     senderStat.live();
                 }
                 if(currChamber == 6){
@@ -286,7 +286,7 @@ public class TheBot extends PircBot {
                 String[] parts = message.split(" ");
                 if(parts.length < 2 || parts[1].equals("help")){
                     sendMessage(channel, "Usage: !help <command>.");
-                    sendMessage(channel, "Commands: roulette, rstats, reload" +
+                    sendMessage(channel, "Commands: roulette, rstats, reload," +
                             " coin, later, karma, clear, other.");
                     return;
                 }
@@ -297,7 +297,8 @@ public class TheBot extends PircBot {
                 }
                 if(parts[1].equals("rstats")){
                     sendMessage(channel, "Displays the stats leaders in Russian Roulette.");
-                    sendMessage(channel, "Shows highest shot total, death rate, and survival rate.");
+                    sendMessage(channel, "Shows highest shot total, death rate, survival rate," +
+                            " and the average chamber in which bullets were found.");
                     sendMessage(channel, "If a nick is given after \"!rstats\", that user's stats will be shown.");
                 }
                 if(parts[1].equals("coin")){
@@ -371,20 +372,20 @@ public class TheBot extends PircBot {
             int karmaAdd = message.endsWith("++") ? 1 : -1;
             String name = parts[parts.length - 1].replace("++", "")
                     .replace("--", "").trim();
-            if(name.equals(sender)){
+            if (name.equals(sender)) {
                 sendMessage(channel, "You can't change your own karma.");
                 karmaAdd = -1;
                 name += "-";
-                if(karmaQ.size() > 5){
+                if (karmaQ.size() > 5) {
                     sendMessage(channel, "Karma queue is full. Stop spamming.");
-                }else{
+                } else {
                     karmaQ.add(name);
                 }
-            }else{
-                 name += message.charAt(message.length() - 1);
-                if(karmaQ.size() > 5){
+            } else {
+                name += message.charAt(message.length() - 1);
+                if (karmaQ.size() > 5) {
                     sendMessage(channel, "Karma queue is full. Stop spamming.");
-                }else{
+                } else {
                     karmaQ.add(name);
                 }
             }

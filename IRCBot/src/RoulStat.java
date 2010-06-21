@@ -10,6 +10,8 @@ public class RoulStat {
     private static double highestDeath = 0;
     private static double highestSurv = 0;
     private static int mostShots = 0;
+    private static int totalBullets = 0;
+    private static double avgChamber = 0;
 
     static void clear() {
         highestDeathName = "";
@@ -100,8 +102,10 @@ public class RoulStat {
         RoulStat.mostShots = mostShots;
     }
 
-    public void death() {
+    public void death(int chamber) {
         deaths++;
+        RoulStat.avgChamber = (RoulStat.avgChamber * (RoulStat.totalBullets++) + chamber)
+                / RoulStat.totalBullets;
     }
 
     public void live() {
@@ -115,7 +119,8 @@ public class RoulStat {
                "Highest death rate: " + highestDeathName + ", " +
                format.format(highestDeath * 100) +"%. "+
                "Highest survival rate: " + highestSurvName + ", " +
-               format.format(highestSurv * 100)+"%.";
+               format.format(highestSurv * 100)+"%. "+
+               "Average bullet position: " +  format.format(avgChamber) + ".";
     }
 
     public String statsString(){
