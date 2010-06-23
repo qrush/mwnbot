@@ -52,6 +52,7 @@ public class TheBot extends PircBot {
         try {
             rOutput = new PrintWriter(new BufferedWriter(
                     new FileWriter(roulStatsFile)), true);
+            rOutput.println(RoulStat.getAvgChamber() + " " + RoulStat.getTotalBullets());
             for(String name : roulMap.keySet()){
                 rOutput.println(name +"\t" + roulMap.get(name));
             }
@@ -199,21 +200,7 @@ public class TheBot extends PircBot {
 
                 RoulStat senderStat = roulMap.get(sender);
                 sendMessage(channel, "Firing chamber " + (currChamber + 1) + " of 6...");
-                if(roulGun[currChamber++]){
-                    sendMessage(channel, "*Bang!* " + sender + " dies.");
-                    senderStat.death(currChamber);
-                    initRoulGun();
-                    sendMessage(channel, "Reloaded");
-                }else{
-                    sendMessage(channel, "*Click* " + sender +" lives.");
-                    senderStat.live();
-                }
-                if(currChamber == 6){
-                    initRoulGun();
-                    sendMessage(channel, "Reloaded");
-                }
-
-                calcRoulStats();
+                fireGun(channel, sender, senderStat);
             }
             if(message.startsWith("rstats")){
                 String[] parts = message.split(" ");
@@ -230,8 +217,22 @@ public class TheBot extends PircBot {
                 }
             }
             if(message.equals("reload")){
-                initRoulGun();
-                sendMessage(channel, "Reloaded");
+                if (currChamber >= 4) {
+                    if (Math.random() >= .5) {
+                        if (roulMap.get(sender) == null) {
+                            roulMap.put(sender, new RoulStat());
+                        }
+                        RoulStat senderStat = roulMap.get(sender);
+                        sendMessage(channel, "You try to reload, but you fire the gun instead.");
+                        fireGun(channel, sender, senderStat);
+                    }else{
+                        initRoulGun();
+                        sendMessage(channel, "Reloaded");
+                    }
+                }else{
+                    initRoulGun();
+                    sendMessage(channel, "Reloaded");
+                }
             }
             if(message.startsWith("clear")){
                 if(!admins.contains(sender)){
@@ -372,20 +373,20 @@ public class TheBot extends PircBot {
             int karmaAdd = message.endsWith("++") ? 1 : -1;
             String name = parts[parts.length - 1].replace("++", "")
                     .replace("--", "").trim();
-            if (name.equals(sender)) {
+            if(name.equals(sender)){
                 sendMessage(channel, "You can't change your own karma.");
                 karmaAdd = -1;
                 name += "-";
-                if (karmaQ.size() > 5) {
+                if(karmaQ.size() > 5){
                     sendMessage(channel, "Karma queue is full. Stop spamming.");
-                } else {
+                }else{
                     karmaQ.add(name);
                 }
             } else {
-                name += message.charAt(message.length() - 1);
-                if (karmaQ.size() > 5) {
+                 name += message.charAt(message.length() - 1);
+                if(karmaQ.size() > 5){
                     sendMessage(channel, "Karma queue is full. Stop spamming.");
-                } else {
+                }else{
                     karmaQ.add(name);
                 }
             }
@@ -401,6 +402,9 @@ public class TheBot extends PircBot {
     private void initRoul() {
         try {
             BufferedReader in = new BufferedReader(new FileReader(roulStatsFile));
+            String[] avgLine = in.readLine().split("[\\s]");
+            RoulStat.setAvgChamber(Double.parseDouble(avgLine[0]));
+            RoulStat.setTotalBullets(Integer.parseInt(avgLine[1]));
             while(in.ready()){
                 String line = in.readLine();
                 String[] parts = line.split("[\\s]");
@@ -485,5 +489,23 @@ public class TheBot extends PircBot {
         RoulStat.setHighestSurv(maxSurv);
         RoulStat.setMostShotsName(maxShotsName);
         RoulStat.setMostShots(maxShots);
+    }
+
+    private void fireGun(String channel, String sender, RoulStat senderStat) {
+         if(roulGun[currChamber++]){
+                    sendMessage(channel, "*Bang!* " + sender + " dies.");
+                    senderStat.death(currChamber);
+                    initRoulGun();
+                    sendMessage(channel, "Reloaded");
+                }else{
+                    sendMessage(channel, "*Click* " + sender +" lives.");
+                    senderStat.live();
+                }
+                if(currChamber == 6){
+                    initRoulGun();
+                    sendMessage(channel, "Reloaded");
+                }
+
+                calcRoulStats();
     }
 }
