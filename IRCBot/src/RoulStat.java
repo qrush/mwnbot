@@ -102,6 +102,22 @@ public class RoulStat {
         RoulStat.mostShots = mostShots;
     }
 
+    public static double getAvgChamber() {
+        return avgChamber;
+    }
+
+    public static int getTotalBullets(){
+        return totalBullets;
+    }
+
+    public static void setAvgChamber(double avgChamber) {
+        RoulStat.avgChamber = avgChamber;
+    }
+
+    public static void setTotalBullets(int totalBullets) {
+        RoulStat.totalBullets = totalBullets;
+    }
+
     public void death(int chamber) {
         deaths++;
         RoulStat.avgChamber = (RoulStat.avgChamber * (RoulStat.totalBullets++) + chamber)

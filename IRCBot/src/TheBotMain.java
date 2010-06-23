@@ -12,7 +12,7 @@ public class TheBotMain {
         bot.connect("irc.freenode.net");
 
         // Join the channel.
-        bot.joinChannel("#bottest");
+        bot.joinChannel("#buildingm");
 
     }
 
