@@ -5,6 +5,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -20,7 +21,7 @@ public class TheBot extends PircBot {
     private static boolean[] roulGun;
     private static int currChamber = 0;
     private static final List<String> admins = new LinkedList<String>(){{
-       add("mwn3d");
+       add("admin login here");
     }};
     private static final String roulStatsFile = "./roul.txt";
     private static final String karmaFile = "./karma.txt";
@@ -72,92 +73,18 @@ public class TheBot extends PircBot {
 
     @Override
     protected void onPrivateMessage(String sender, String login, String hostname, String message) {
-        if(message.contains("http://")){
+        if(message.contains("http://") || message.contains("https://")){
             String[] parts = message.split(" ");
-            for(String part : parts){
-                if(part.startsWith("http://")){
-                    try {
-                        URL url = new URL(part);
-                        Scanner sc = new Scanner(url.openStream());
-                        String titleTag = "";
-                        boolean append = false;
-                        while (sc.hasNext()) {
-                            String line = sc.nextLine().trim();
-                            if(line.contains("<title>")){
-                                append = true;
-                            }
-                            if(append){
-                                titleTag += line;
-                            }
-                            if(line.contains("</title>")){
-                                append = false;
-                            }
-                        }
-                        titleTag = titleTag.replaceAll(".*<title>", "")
-                                .replaceAll("</title>.*", "").trim();
-                        if(titleTag.length() > 0){
-                            sendMessage(sender, "Link title: " + titleTag);
-                        }else{
-                            sendMessage(sender, "Could not get link title");
-                        }
-                    } catch (IOException ex){}
-                }
-            }
+            urlScan(parts, sender);
         }
         if (message.startsWith("!help")) {
             String[] parts = message.split(" ");
-            if (parts.length < 2 || parts[1].equals("help")) {
-                sendMessage(sender, "Usage: !help <command>.");
-                sendMessage(sender, "Commands: roulette, rstats, reload,"
-                        + " coin, later, karma, clear, other.");
-                return;
-            }
-            if (parts[1].equals("roulette")) {
-                sendMessage(sender, "Plays one shot of Russian Roulette.");
-                sendMessage(sender, "One bullet out of six chambers -- ");
-                sendMessage(sender, "Will you live?");
-            }
-            if (parts[1].equals("rstats")) {
-                sendMessage(sender, "Displays the stats leaders in Russian Roulette.");
-                sendMessage(sender, "Shows highest shot total, death rate, and survival rate.");
-                sendMessage(sender, "If a nick is given after \"!rstats\", that user's stats will be shown.");
-            }
-            if (parts[1].equals("coin")) {
-                sendMessage(sender, "Flips a coin and shows the result.");
-            }
-            if (parts[1].equals("later")) {
-                sendMessage(sender, "Usage: !later <nick> <message>");
-                sendMessage(sender, "Sends a message directed at <nick> in the channel");
-                sendMessage(sender, "when they send a message or join.");
-                sendMessage(sender, "Each person is limited to five messages, so make it good.");
-            }
-            if (parts[1].equals("reload")) {
-                sendMessage(sender, "Reloads the Russian Roulette gun"
-                        + " before all six chambers are fired.");
-            }
-            if (parts[1].equals("karma")) {
-                sendMessage(sender, "Usage: !karma <nick>");
-                sendMessage(sender, "Shows the current karma of <nick>.");
-                sendMessage(sender, "Sending \"!karma\" with no nick shows your karma.");
-                sendMessage(sender, "To increase someone's karma, send \"<nick>++\".");
-                sendMessage(sender, "To decrease someone's karma, send \"<nick>--\".");
-                sendMessage(sender, "If too many karma changes are sent in" +
-                        " a short amount of time, some will be ignored.");
-            }
-            if (parts[1].equals("clear")) {
-                sendMessage(sender, "Admin operation. Usage: !clear <all|roulette|karma>");
-                sendMessage(sender, "Clears the data stored for Russian roulette, karma, or both.");
-            }
-            if (parts[1].equals("other")) {
-                sendMessage(sender, "This bot will also check link titles when" +
-                        " http or https links are sent.");
-                sendMessage(sender, "It will ignore direct links to image and video files.");
-            }
+            helpMessage(parts, sender);
         }
 
-        if(message.equals("disconnect") && admins.contains(sender)){
+        if(message.equals("disconnect") && admins.contains(login)){
             disconnect();
-        }else if(message.equals("disconnect") && !admins.contains(sender)){
+        }else if(message.equals("disconnect") && !admins.contains(login)){
             sendMessage(sender, "You're not my admin.");
         }
     }
@@ -285,89 +212,11 @@ public class TheBot extends PircBot {
             }
             if(message.startsWith("help")){
                 String[] parts = message.split(" ");
-                if(parts.length < 2 || parts[1].equals("help")){
-                    sendMessage(channel, "Usage: !help <command>.");
-                    sendMessage(channel, "Commands: roulette, rstats, reload," +
-                            " coin, later, karma, clear, other.");
-                    return;
-                }
-                if(parts[1].equals("roulette")){
-                    sendMessage(channel, "Plays one shot of Russian Roulette.");
-                    sendMessage(channel, "One bullet out of six chambers -- ");
-                    sendMessage(channel, "Will you live?");
-                }
-                if(parts[1].equals("rstats")){
-                    sendMessage(channel, "Displays the stats leaders in Russian Roulette.");
-                    sendMessage(channel, "Shows highest shot total, death rate, survival rate," +
-                            " and the average chamber in which bullets were found.");
-                    sendMessage(channel, "If a nick is given after \"!rstats\", that user's stats will be shown.");
-                }
-                if(parts[1].equals("coin")){
-                    sendMessage(channel, "Flips a coin and shows the result.");
-                }
-                if(parts[1].equals("later")){
-                    sendMessage(channel, "Usage: !later <nick> <message>");
-                    sendMessage(channel, "Sends a message directed at <nick> in the channel");
-                    sendMessage(channel, "when they send a message or join.");
-                    sendMessage(channel, "Each person is limited to five messages, so make it good.");
-                }
-                if(parts[1].equals("reload")){
-                    sendMessage(channel, "Reloads the Russian Roulette gun" +
-                            " before all six chambers are fired.");
-                }
-                if(parts[1].equals("karma")){
-                    sendMessage(channel, "Usage: !karma <nick>");
-                    sendMessage(channel, "Shows the current karma of <nick>.");
-                    sendMessage(channel, "Sending \"!karma\" with no nick shows your karma.");
-                    sendMessage(channel, "To increase someone's karma, send \"<nick>++\".");
-                    sendMessage(channel, "To decrease someone's karma, send \"<nick>--\".");
-                    sendMessage(channel, "If too many karma changes are sent" +
-                            " in a short amount of time, some will be ignored.");
-                }
-                if(parts[1].equals("clear")){
-                    sendMessage(channel, "Admin operation. Usage: !clear <all|roulette|karma>");
-                    sendMessage(channel, "Clears the data stored for Russian roulette, karma, or both.");
-                }
-                if (parts[1].equals("other")) {
-                sendMessage(channel, "This bot will also check link titles when" +
-                        " http or https links are sent.");
-                sendMessage(channel, "It will ignore direct links to image and video files.");
-            }
+                helpMessage(parts, channel);
             }
         }else if(message.contains("http://") || message.contains("https://")){
             String[] parts = message.split(" ");
-            for(String part : parts){
-                if(part.startsWith("http://") || part.startsWith("https://")){
-                    try {
-                        URL url = new URL(part);
-                        if(!url.openConnection().getContentType().startsWith("text")){
-                            continue;
-                        }
-                        Scanner sc = new Scanner(url.openStream());
-                        String titleTag = "";
-                        boolean append = false;
-                        while (sc.hasNext()) {
-                            String line = sc.nextLine().trim();
-                            if(line.toLowerCase().contains("<title>")){
-                                append = true;
-                            }
-                            if(append){
-                                titleTag += line;
-                            }
-                            if(line.toLowerCase().contains("</title>")){
-                                append = false;
-                            }
-                        }
-                        titleTag = titleTag.replaceAll(".*<title>|.*<TITLE>", "")
-                                .replaceAll("</title>.*|</TITLE>.*", "").trim();
-                        if(titleTag.length() > 0){
-                            sendMessage(channel, "Link title: " + titleTag);
-                        }else{
-                            sendMessage(channel, "Could not get link title");
-                        }
-                    } catch (IOException ex){}
-                }
-            }
+            urlScan(parts, channel);
         }else if(message.endsWith("++") || message.endsWith("--")){
             String[] parts = message.split(" ");
             int karmaAdd = message.endsWith("++") ? 1 : -1;
@@ -456,7 +305,7 @@ public class TheBot extends PircBot {
             }
         };
         Timer timer = new Timer(false);
-        timer.schedule(task, 0, 1000);
+        timer.schedule(task, 0, 1500);
     }
 
     private void calcRoulStats() {
@@ -507,5 +356,92 @@ public class TheBot extends PircBot {
                 }
 
                 calcRoulStats();
+    }
+
+    private void urlScan(String[] parts, String channel) {
+        for (String part : parts) {
+            if (part.startsWith("http://") || part.startsWith("https://")) {
+                try {
+                    URLConnection urlConn = new URL(part).openConnection();
+                    urlConn.setReadTimeout(20000);
+                    if (!urlConn.getContentType().startsWith("text")) {
+                        continue;
+                    }
+                    Scanner sc = new Scanner(urlConn.getURL().openStream());
+                    String titleTag = "";
+                    boolean append = false;
+                    while (sc.hasNext()) {
+                        String line = sc.nextLine().trim();
+                        if (line.toLowerCase().contains("<title>")) {
+                            append = true;
+                        }
+                        if (append) {
+                            titleTag += line;
+                        }
+                        if (line.toLowerCase().contains("</title>")) {
+                            append = false;
+                        }
+                    }
+                    titleTag = titleTag.replaceAll(".*<title>|.*<TITLE>", "").
+                            replaceAll("</title>.*|</TITLE>.*", "").trim();
+                    if (titleTag.length() > 0) {
+                        sendMessage(channel, "Link title: " + titleTag);
+                    } else {
+                        sendMessage(channel, "Could not get link title");
+                    }
+                } catch (IOException ex) {
+                }
+            }
+        }
+    }
+
+    private void helpMessage(String[] parts, String channel) {
+        if (parts.length < 2 || parts[1].equals("help")) {
+                sendMessage(channel, "Usage: !help <command>.");
+                sendMessage(channel, "Commands: roulette, rstats, reload,"
+                        + " coin, later, karma, clear, other.");
+                return;
+            }
+            if (parts[1].equals("roulette")) {
+                sendMessage(channel, "Plays one shot of Russian Roulette.");
+                sendMessage(channel, "One bullet out of six chambers -- ");
+                sendMessage(channel, "Will you live?");
+            }
+            if (parts[1].equals("rstats")) {
+                sendMessage(channel, "Displays the stats leaders in Russian Roulette.");
+                sendMessage(channel, "Shows highest shot total, death rate, and survival rate.");
+                sendMessage(channel, "If a nick is given after \"!rstats\", that user's stats will be shown.");
+            }
+            if (parts[1].equals("coin")) {
+                sendMessage(channel, "Flips a coin and shows the result.");
+            }
+            if (parts[1].equals("later")) {
+                sendMessage(channel, "Usage: !later <nick> <message>");
+                sendMessage(channel, "Sends a message directed at <nick> in the channel");
+                sendMessage(channel, "when they send a message or join.");
+                sendMessage(channel, "Each person is limited to five messages, so make it good.");
+            }
+            if (parts[1].equals("reload")) {
+                sendMessage(channel, "Reloads the Russian Roulette gun"
+                        + " before all six chambers are fired.");
+            }
+            if (parts[1].equals("karma")) {
+                sendMessage(channel, "Usage: !karma <nick>");
+                sendMessage(channel, "Shows the current karma of <nick>.");
+                sendMessage(channel, "Sending \"!karma\" with no nick shows your karma.");
+                sendMessage(channel, "To increase someone's karma, send \"<nick>++\".");
+                sendMessage(channel, "To decrease someone's karma, send \"<nick>--\".");
+                sendMessage(channel, "If too many karma changes are sent in" +
+                        " a short amount of time, some will be ignored.");
+            }
+            if (parts[1].equals("clear")) {
+                sendMessage(channel, "Admin operation. Usage: !clear <all|roulette|karma>");
+                sendMessage(channel, "Clears the data stored for Russian roulette, karma, or both.");
+            }
+            if (parts[1].equals("other")) {
+                sendMessage(channel, "This bot will also check link titles when" +
+                        " http or https links are sent.");
+                sendMessage(channel, "It will ignore direct links to image and video files.");
+            }
     }
 }
