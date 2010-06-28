@@ -61,7 +61,9 @@ public class TheBot extends PircBot {
             kOutput = new PrintWriter(new BufferedWriter(
                     new FileWriter(karmaFile)), true);
             for(String name : karmaMap.keySet()){
-                kOutput.println(name +"\t" + karmaMap.get(name));
+                if(karmaMap.get(name) != 0){
+                    kOutput.println(name +"\t" + karmaMap.get(name));
+                }
             }
         } catch (IOException ex) {
         }finally{
@@ -162,19 +164,33 @@ public class TheBot extends PircBot {
                 }
             }
             if(message.startsWith("clear")){
-                if(!admins.contains(sender)){
+                if(!admins.contains(login)){
                     sendMessage(channel, "You're not my admin.");
                 }else{
                     String[] parts = message.split(" ");
-                    for(String part : parts){
-                        if(part.equals("roulette") || part.equals("all")){
+                    String command = parts[1];
+                    if(command.equals("all")){
+                         roulMap.clear();
+                         initRoulGun();
+                         RoulStat.clear();
+                         karmaMap.clear();
+                    }else if(command.equals("roulette")){
+                        if(parts.length == 2){
                             roulMap.clear();
                             initRoulGun();
                             RoulStat.clear();
+                            return;
                         }
-
-                        if(part.equals("karma") || part.equals("all")){
+                        for(int i = 2; i < parts.length; i++){
+                            roulMap.remove(parts[i]);
+                        }
+                    }else if(command.equals("karma")){
+                        if(parts.length == 2){
                             karmaMap.clear();
+                            return;
+                        }
+                        for(int i = 2; i < parts.length; i++){
+                            karmaMap.remove(parts[i]);
                         }
                     }
                 }
@@ -315,8 +331,9 @@ public class TheBot extends PircBot {
         String maxSurvName = "";
         int maxShots = 0;
         String maxShotsName = "";
-        for (String name : roulMap.keySet()) {
-            RoulStat stats = roulMap.get(name);
+        for (Map.Entry<String, RoulStat> entry : roulMap.entrySet()) {
+            String name = entry.getKey();
+            RoulStat stats = entry.getValue();
             if (stats.getDeathRate() > maxDeath) {
                 maxDeath = stats.getDeathRate();
                 maxDeathName = name;
@@ -397,51 +414,53 @@ public class TheBot extends PircBot {
 
     private void helpMessage(String[] parts, String channel) {
         if (parts.length < 2 || parts[1].equals("help")) {
-                sendMessage(channel, "Usage: !help <command>.");
-                sendMessage(channel, "Commands: roulette, rstats, reload,"
-                        + " coin, later, karma, clear, other.");
-                return;
-            }
-            if (parts[1].equals("roulette")) {
-                sendMessage(channel, "Plays one shot of Russian Roulette.");
-                sendMessage(channel, "One bullet out of six chambers -- ");
-                sendMessage(channel, "Will you live?");
-            }
-            if (parts[1].equals("rstats")) {
-                sendMessage(channel, "Displays the stats leaders in Russian Roulette.");
-                sendMessage(channel, "Shows highest shot total, death rate, and survival rate.");
-                sendMessage(channel, "If a nick is given after \"!rstats\", that user's stats will be shown.");
-            }
-            if (parts[1].equals("coin")) {
-                sendMessage(channel, "Flips a coin and shows the result.");
-            }
-            if (parts[1].equals("later")) {
-                sendMessage(channel, "Usage: !later <nick> <message>");
-                sendMessage(channel, "Sends a message directed at <nick> in the channel");
-                sendMessage(channel, "when they send a message or join.");
-                sendMessage(channel, "Each person is limited to five messages, so make it good.");
-            }
-            if (parts[1].equals("reload")) {
-                sendMessage(channel, "Reloads the Russian Roulette gun"
-                        + " before all six chambers are fired.");
-            }
-            if (parts[1].equals("karma")) {
-                sendMessage(channel, "Usage: !karma <nick>");
-                sendMessage(channel, "Shows the current karma of <nick>.");
-                sendMessage(channel, "Sending \"!karma\" with no nick shows your karma.");
-                sendMessage(channel, "To increase someone's karma, send \"<nick>++\".");
-                sendMessage(channel, "To decrease someone's karma, send \"<nick>--\".");
-                sendMessage(channel, "If too many karma changes are sent in" +
-                        " a short amount of time, some will be ignored.");
-            }
-            if (parts[1].equals("clear")) {
-                sendMessage(channel, "Admin operation. Usage: !clear <all|roulette|karma>");
-                sendMessage(channel, "Clears the data stored for Russian roulette, karma, or both.");
-            }
-            if (parts[1].equals("other")) {
-                sendMessage(channel, "This bot will also check link titles when" +
-                        " http or https links are sent.");
-                sendMessage(channel, "It will ignore direct links to image and video files.");
-            }
+            sendMessage(channel, "Usage: !help <command>.");
+            sendMessage(channel, "Commands: roulette, rstats, reload,"
+                    + " coin, later, karma, clear, other.");
+            return;
+        }
+        if (parts[1].equals("roulette")) {
+            sendMessage(channel, "Plays one shot of Russian Roulette.");
+            sendMessage(channel, "One bullet out of six chambers -- ");
+            sendMessage(channel, "Will you live?");
+        }
+        if (parts[1].equals("rstats")) {
+            sendMessage(channel, "Displays the stats leaders in Russian Roulette.");
+            sendMessage(channel, "Shows highest shot total, death rate, and survival rate.");
+            sendMessage(channel, "If a nick is given after \"!rstats\", that user's stats will be shown.");
+        }
+        if (parts[1].equals("coin")) {
+            sendMessage(channel, "Flips a coin and shows the result.");
+        }
+        if (parts[1].equals("later")) {
+            sendMessage(channel, "Usage: !later <nick> <message>");
+            sendMessage(channel, "Sends a message directed at <nick> in the channel");
+            sendMessage(channel, "when they send a message or join.");
+            sendMessage(channel, "Each person is limited to five messages, so make it good.");
+        }
+        if (parts[1].equals("reload")) {
+            sendMessage(channel, "Reloads the Russian Roulette gun"
+                    + " before all six chambers are fired.");
+        }
+        if (parts[1].equals("karma")) {
+            sendMessage(channel, "Usage: !karma <nick>");
+            sendMessage(channel, "Shows the current karma of <nick>.");
+            sendMessage(channel, "Sending \"!karma\" with no nick shows your karma.");
+            sendMessage(channel, "To increase someone's karma, send \"<nick>++\".");
+            sendMessage(channel, "To decrease someone's karma, send \"<nick>--\".");
+            sendMessage(channel, "If too many karma changes are sent in"
+                    + " a short amount of time, some will be ignored.");
+        }
+        if (parts[1].equals("clear")) {
+            sendMessage(channel, "Admin operation. Usage: !clear <all|roulette|karma>");
+            sendMessage(channel, "Clears the data stored for Russian roulette, karma, or both.");
+            sendMessage(channel, "When \"roulette\" or \"karma\" are specified, nicks may be given" +
+                    " after to clear the karma or roulette information for only those nicks.");
+        }
+        if (parts[1].equals("other")) {
+            sendMessage(channel, "This bot will also check link titles when"
+                    + " http or https links are sent.");
+            sendMessage(channel, "It will ignore direct links to image and video files.");
+        }
     }
 }
