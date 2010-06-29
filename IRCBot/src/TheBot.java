@@ -389,18 +389,18 @@ public class TheBot extends PircBot {
                     boolean append = false;
                     while (sc.hasNext()) {
                         String line = sc.nextLine().trim();
-                        if (line.toLowerCase().contains("<title>")) {
+                        if (line.toLowerCase().contains("<title")) {
                             append = true;
                         }
                         if (append) {
                             titleTag += line;
                         }
-                        if (line.toLowerCase().contains("</title>")) {
+                        if (line.toLowerCase().contains("</title")) {
                             append = false;
                         }
                     }
-                    titleTag = titleTag.replaceAll(".*<title>|.*<TITLE>", "").
-                            replaceAll("</title>.*|</TITLE>.*", "").trim();
+                    titleTag = titleTag.replaceAll("</title>.*|</TITLE>.*", "").
+                            replaceAll(".*<title.*>|.*<TITLE.*>", "").trim();
                     if (titleTag.length() > 0) {
                         sendMessage(channel, "Link title: " + titleTag);
                     } else {
