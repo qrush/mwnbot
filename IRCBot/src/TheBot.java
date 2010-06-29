@@ -280,7 +280,7 @@ public class TheBot extends PircBot {
                 }
             }
         }
-        String[] parts = message.toLowerCase().replaceAll("[^A-Za-z0-9\\s]", " ").split(" ");
+        String[] parts = message.toLowerCase().replaceAll("[^A-Za-z0-9\\s'\\x2D]", " ").split(" ");
         wordCount(parts);
     }
 
