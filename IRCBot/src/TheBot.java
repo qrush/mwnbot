@@ -6,18 +6,23 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Scanner;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.TreeSet;
 import org.jibble.pircbot.*;
 
 public class TheBot extends PircBot {
     private static final Map<String, Integer> karmaMap = new HashMap<String, Integer>();
     private static final Map<String, RoulStat> roulMap = new HashMap<String, RoulStat>();
+    private static final Map<String, Integer> wcMap = new HashMap<String, Integer>();
     private static boolean[] roulGun;
     private static int currChamber = 0;
     private static final List<String> admins = new LinkedList<String>(){{
@@ -25,6 +30,7 @@ public class TheBot extends PircBot {
     }};
     private static final String roulStatsFile = "./roul.txt";
     private static final String karmaFile = "./karma.txt";
+    private static final String wordFile = "./words.txt";
     private static final Map<String, LinkedList<String>> laterMap =
             new HashMap<String, LinkedList<String>>();
     private static final LinkedList<String> karmaQ = new LinkedList<String>();
@@ -37,6 +43,7 @@ public class TheBot extends PircBot {
         sendMessage("NickServ", "identify " + PASS);
         initRoul();
         initKarma();
+        initWc();
         initRoulGun();
     }
 
@@ -50,6 +57,7 @@ public class TheBot extends PircBot {
     protected void onDisconnect() {
         PrintWriter rOutput = null;
         PrintWriter kOutput = null;
+        PrintWriter wOutput = null;
         try {
             rOutput = new PrintWriter(new BufferedWriter(
                     new FileWriter(roulStatsFile)), true);
@@ -65,10 +73,19 @@ public class TheBot extends PircBot {
                     kOutput.println(name +"\t" + karmaMap.get(name));
                 }
             }
+
+            wOutput = new PrintWriter(new BufferedWriter(
+                    new FileWriter(wordFile)), true);
+            for(String name : wcMap.keySet()){
+                if(wcMap.get(name) != 0){
+                    wOutput.println(name +"\t" + wcMap.get(name));
+                }
+            }
         } catch (IOException ex) {
         }finally{
             if(rOutput != null) rOutput.close();
             if(kOutput != null) kOutput.close();
+            if(wOutput != null) wOutput.close();
         }
         System.exit(0);
     }
@@ -193,6 +210,9 @@ public class TheBot extends PircBot {
                             karmaMap.remove(parts[i]);
                         }
                     }
+                    else if(command.equals("words")){
+                        wcMap.clear();
+                    }
                 }
             }
             if(message.startsWith("later")){
@@ -230,6 +250,10 @@ public class TheBot extends PircBot {
                 String[] parts = message.split(" ");
                 helpMessage(parts, channel);
             }
+            if(message.equals("wstats")){
+                sendMessage(channel, "Five most commonly used words: " + getWStatsStr());
+            }
+            return; //was a command, dont count it in word stats
         }else if(message.contains("http://") || message.contains("https://")){
             String[] parts = message.split(" ");
             urlScan(parts, channel);
@@ -256,6 +280,8 @@ public class TheBot extends PircBot {
                 }
             }
         }
+        String[] parts = message.toLowerCase().replaceAll("[^A-Za-z0-9\\s]", "").split(" ");
+        wordCount(parts);
     }
 
     private void initRoulGun() {
@@ -322,6 +348,21 @@ public class TheBot extends PircBot {
         };
         Timer timer = new Timer(false);
         timer.schedule(task, 0, 1500);
+    }
+
+    private void initWc() {
+        try {
+            BufferedReader in = new BufferedReader(new FileReader(wordFile));
+            while(in.ready()){
+                String line = in.readLine();
+                String[] parts = line.split("[\\s]");
+                if(parts.length != 2) continue;
+                wcMap.put(parts[0], Integer.valueOf(parts[1]));
+            }
+            in.close();
+        } catch (IOException ex) {
+            System.err.println("Error reading word file: " + ex.getMessage());
+        }
     }
 
     private void calcRoulStats() {
@@ -462,5 +503,39 @@ public class TheBot extends PircBot {
                     + " http or https links are sent.");
             sendMessage(channel, "It will ignore direct links to image and video files.");
         }
+    }
+
+    private void wordCount(String[] parts) {
+        for(String word : parts){
+            if(wcMap.get(word) == null){
+                wcMap.put(word, 1);
+            }else{
+                wcMap.put(word, wcMap.get(word) + 1);
+            }
+        }
+    }
+
+    private String getWStatsStr() {
+        if(wcMap.size() == 0){
+            return "No word counts recorded yet";
+        }
+        Set<Map.Entry<String, Integer>> words = new TreeSet<Map.Entry<String, Integer>>(new Comparator<Map.Entry<String, Integer>>(){
+            public int compare(Entry<String, Integer> o1, Entry<String, Integer> o2) {
+                if(o2.getValue().equals(o1.getValue())){
+                    return o2.getKey().compareTo(o1.getKey());
+                }
+                return o2.getValue().compareTo(o1.getValue());
+            }
+        });
+        words.addAll(wcMap.entrySet());
+        String top5 = "";
+        int i = 0;
+        for(Map.Entry<String, Integer> entry : words){
+            top5 += ++i + ": " + entry.getKey() + ", " + entry.getValue() + " occurrences. ";
+            if(i == 5){
+                break;
+            }
+        }
+        return top5;
     }
 }
