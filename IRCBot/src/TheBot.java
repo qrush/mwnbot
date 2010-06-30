@@ -33,16 +33,6 @@ public class TheBot extends PircBot {
        add("and");
        add("for");
        add("you");
-       add("sinep");
-       add("penis");
-       add("pen1s");
-       add("pen15");
-       add("peni5");
-       add("p3nis");
-       add("p3n1s");
-       add("p3ni5");
-       add("p3n15");
-       add("penises");
     }};
     private static final String roulStatsFile = "./roul.txt";
     private static final String karmaFile = "./karma.txt";
