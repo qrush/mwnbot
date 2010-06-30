@@ -28,6 +28,22 @@ public class TheBot extends PircBot {
     private static final List<String> admins = new LinkedList<String>(){{
        add("admin login here");
     }};
+    private static final List<String> ignoreWords = new LinkedList<String>(){{
+       add("the");
+       add("and");
+       add("for");
+       add("you");
+       add("sinep");
+       add("penis");
+       add("pen1s");
+       add("pen15");
+       add("peni5");
+       add("p3nis");
+       add("p3n1s");
+       add("p3ni5");
+       add("p3n15");
+       add("penises");
+    }};
     private static final String roulStatsFile = "./roul.txt";
     private static final String karmaFile = "./karma.txt";
     private static final String wordFile = "./words.txt";
@@ -280,7 +296,14 @@ public class TheBot extends PircBot {
                 }
             }
         }
-        String[] parts = message.toLowerCase().replaceAll("[^A-Za-z0-9\\s'\\x2D]", " ").split(" ");
+        String[] parts = message.toLowerCase().split(" ");
+        for(String word:parts){
+            if(word.contains("http:") || word.contains("https:")){
+                word = "";
+            }else{
+                word = word.replaceAll("[^a-z0-9\\s'\\x2D]", "");
+            }
+        }
         wordCount(parts);
     }
 
@@ -507,7 +530,7 @@ public class TheBot extends PircBot {
 
     private void wordCount(String[] parts) {
         for(String word : parts){
-            if(word.length() == 0) continue;
+            if(word.length() <= 2 || ignoreWords.contains(word)) continue;
             if(wcMap.get(word) == null){
                 wcMap.put(word, 1);
             }else{
