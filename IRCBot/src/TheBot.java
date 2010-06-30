@@ -287,7 +287,8 @@ public class TheBot extends PircBot {
                 }
             }
         }
-        String[] parts = message.toLowerCase().replaceAll("[,.{2,}]", " ").split(" ");
+        String[] parts = message.toLowerCase().replaceAll(",", " ").
+                replaceAll("\\x2E{2,}+", " ").split(" ");
         for(int i = 0;i < parts.length; i++){
             if(parts[i].contains("http:") || parts[i].contains("https:")){
                 parts[i] = "";
