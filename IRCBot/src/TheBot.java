@@ -207,6 +207,7 @@ public class TheBot extends PircBot {
                          initRoulGun();
                          RoulStat.clear();
                          karmaMap.clear();
+                         wcMap.clear();
                     }else if(command.equals("roulette")){
                         if(parts.length == 2){
                             roulMap.clear();
@@ -296,12 +297,12 @@ public class TheBot extends PircBot {
                 }
             }
         }
-        String[] parts = message.toLowerCase().split(" ");
-        for(String word:parts){
-            if(word.contains("http:") || word.contains("https:")){
-                word = "";
+        String[] parts = message.toLowerCase().replaceAll("[,.{2,}]", " ").split(" ");
+        for(int i = 0;i < parts.length; i++){
+            if(parts[i].contains("http:") || parts[i].contains("https:")){
+                parts[i] = "";
             }else{
-                word = word.replaceAll("[^a-z0-9\\s'\\x2D]", "");
+                parts[i] = parts[i].replaceAll("[^a-z0-9'\\s\\x2D]", "");
             }
         }
         wordCount(parts);
