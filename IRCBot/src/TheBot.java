@@ -3,6 +3,7 @@ import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.net.URL;
 import java.net.URLConnection;
@@ -17,6 +18,10 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import javax.swing.SwingWorker;
 import org.jibble.pircbot.*;
 
 public class TheBot extends PircBot {
@@ -107,34 +112,26 @@ public class TheBot extends PircBot {
             helpMessage(parts, sender);
         }
 
-        if(message.equals("disconnect") && admins.contains(login)){
-            disconnect();
-        }else if(message.equals("disconnect") && !admins.contains(login)){
-            sendMessage(sender, "You're not my admin.");
+        if(message.equals("disconnect")){
+            if(admins.contains(login)){
+                disconnect();
+            }else{
+                sendMessage(sender, "You're not my admin.");
+            }
         }
     }
 
     @Override
     protected void onJoin(String channel, String sender, String login, String hostname) {
         super.onJoin(channel, sender, login, hostname);
-        if(laterMap.get(sender) != null){
-            for(String msg : laterMap.get(sender)){
-                sendMessage(channel, msg);
-            }
-            laterMap.remove(sender);
-        }
+        checkLaterMsgs(channel, sender);
     }
 
 
     @Override
     public void onMessage(String channel, String sender,
             String login, String hostname, String message) {
-        if(laterMap.get(sender) != null){
-            for(String msg : laterMap.get(sender)){
-                sendMessage(channel, msg);
-            }
-            laterMap.remove(sender);
-        }
+        checkLaterMsgs(channel, sender);
         if (message.startsWith("!")){
             message = message.substring(1).trim();
             if(message.startsWith("karma")){
@@ -146,13 +143,8 @@ public class TheBot extends PircBot {
                 sendMessage(channel, name + "'s karma: " + karmaMap.get(name));
             }
             if(message.equals("roulette")){
-                if(roulMap.get(sender) == null){
-                    roulMap.put(sender, new RoulStat());
-                }
-
-                RoulStat senderStat = roulMap.get(sender);
                 sendMessage(channel, "Firing chamber " + (currChamber + 1) + " of 6...");
-                fireGun(channel, sender, senderStat);
+                fireGun(channel, sender);
             }
             if(message.startsWith("rstats")){
                 String[] parts = message.split(" ");
@@ -171,12 +163,8 @@ public class TheBot extends PircBot {
             if(message.equals("reload")){
                 if (currChamber >= 4) {
                     if (Math.random() >= .5) {
-                        if (roulMap.get(sender) == null) {
-                            roulMap.put(sender, new RoulStat());
-                        }
-                        RoulStat senderStat = roulMap.get(sender);
                         sendMessage(channel, "You try to reload, but you fire the gun instead.");
-                        fireGun(channel, sender, senderStat);
+                        fireGun(channel, sender);
                     }else{
                         initRoulGun();
                         sendMessage(channel, "Reloaded");
@@ -208,6 +196,7 @@ public class TheBot extends PircBot {
                         for(int i = 2; i < parts.length; i++){
                             roulMap.remove(parts[i]);
                         }
+                        calcRoulStats();
                     }else if(command.equals("karma")){
                         if(parts.length == 2){
                             karmaMap.clear();
@@ -216,9 +205,12 @@ public class TheBot extends PircBot {
                         for(int i = 2; i < parts.length; i++){
                             karmaMap.remove(parts[i]);
                         }
-                    }
-                    else if(command.equals("words")){
+                    }else if(command.equals("words")){
                         wcMap.clear();
+                    }else if(command.equals("word")){
+                        for(int i = 2; i < parts.length; i++){
+                            wcMap.remove(parts[i]);
+                        }
                     }
                 }
             }
@@ -258,7 +250,7 @@ public class TheBot extends PircBot {
                 helpMessage(parts, channel);
             }
             if(message.equals("wstats")){
-                sendMessage(channel, "Five most commonly used words: " + getWStatsStr());
+                sendMessage(channel, "Ten most commonly used words: " + getWStatsStr());
             }
             return; //was a command, dont count it in word stats
         }else if(message.contains("http://") || message.contains("https://")){
@@ -413,57 +405,56 @@ public class TheBot extends PircBot {
         RoulStat.setMostShots(maxShots);
     }
 
-    private void fireGun(String channel, String sender, RoulStat senderStat) {
-         if(roulGun[currChamber++]){
-                    sendMessage(channel, "*Bang!* " + sender + " dies.");
-                    senderStat.death(currChamber);
-                    initRoulGun();
-                    sendMessage(channel, "Reloaded");
-                }else{
-                    sendMessage(channel, "*Click* " + sender +" lives.");
-                    senderStat.live();
-                }
-                if(currChamber == 6){
-                    initRoulGun();
-                    sendMessage(channel, "Reloaded");
-                }
+    private void fireGun(String channel, String sender) {
+        if (roulMap.get(sender) == null) {
+            roulMap.put(sender, new RoulStat());
+        }
 
-                calcRoulStats();
+        RoulStat senderStat = roulMap.get(sender);
+        if (roulGun[currChamber++]) {
+            sendMessage(channel, "*Bang!* " + sender + " dies.");
+            senderStat.death(currChamber);
+            initRoulGun();
+            sendMessage(channel, "Reloaded");
+        } else {
+            sendMessage(channel, "*Click* " + sender + " lives.");
+            senderStat.live();
+        }
+        if (currChamber == 6) {
+            initRoulGun();
+            sendMessage(channel, "Reloaded");
+        }
+
+        calcRoulStats();
     }
 
-    private void urlScan(String[] parts, String channel) {
-        for (String part : parts) {
+    private void urlScan(String[] parts, final String channel) {
+        for (final String part : parts) {
             if (part.startsWith("http://") || part.startsWith("https://")) {
-                try {
-                    URLConnection urlConn = new URL(part).openConnection();
-                    urlConn.setReadTimeout(20000);
-                    if (!urlConn.getContentType().startsWith("text")) {
-                        continue;
-                    }
-                    Scanner sc = new Scanner(urlConn.getURL().openStream());
-                    String titleTag = "";
-                    boolean append = false;
-                    while (sc.hasNext()) {
-                        String line = sc.nextLine().trim();
-                        if (line.toLowerCase().contains("<title")) {
-                            append = true;
+                new Thread(){
+                    @Override
+                    public void run(){
+                        LinkWorker worker = new LinkWorker(part);
+                        worker.execute();
+                        try {
+                            String title = worker.get(20, TimeUnit.SECONDS);
+                            if(title != null && title.length() == 0){
+                                sendMessage(channel, "Could not get link title.");
+                            }else if(title != null){
+                                sendMessage(channel, "Link title: " + title);
+                            }
+                        } catch (InterruptedException ex) {
+                            sendMessage(channel, "Could not get link title.");
+                        } catch (ExecutionException ex) {
+                            sendMessage(channel, "Could not get link title.");
+                        } catch (TimeoutException ex) {
+                            sendMessage(channel, "Timed out getting link title.");
+                            worker.closeStream();
+                            worker.cancel(true);
                         }
-                        if (append) {
-                            titleTag += line;
-                        }
-                        if (line.toLowerCase().contains("</title")) {
-                            append = false;
-                        }
+
                     }
-                    titleTag = titleTag.replaceAll("</title>.*|</TITLE>.*", "").
-                            replaceAll(".*<title.*>|.*<TITLE.*>", "").trim();
-                    if (titleTag.length() > 0) {
-                        sendMessage(channel, "Link title: " + titleTag);
-                    } else {
-                        sendMessage(channel, "Could not get link title");
-                    }
-                } catch (IOException ex) {
-                }
+                }.start();
             }
         }
     }
@@ -544,14 +535,77 @@ public class TheBot extends PircBot {
             }
         });
         words.addAll(wcMap.entrySet());
-        String top5 = "";
+        String top10 = "";
         int i = 0;
         for(Map.Entry<String, Integer> entry : words){
-            top5 += ++i + ": " + entry.getKey() + ", " + entry.getValue() + " occurrences. ";
-            if(i == 5){
+            top10 += ++i + ": " + entry.getKey() + " (" + entry.getValue() + ") ";
+            if(i == 10){
                 break;
             }
         }
-        return top5;
+        return top10;
+    }
+
+    private void checkLaterMsgs(String channel, String sender) {
+        if(laterMap.get(sender) != null){
+            for(String msg : laterMap.get(sender)){
+                sendMessage(channel, msg);
+            }
+            laterMap.remove(sender);
+        }
+    }
+
+    private class LinkWorker extends SwingWorker<String, String>{
+        private String url;
+        private InputStream urlStream;
+
+        public LinkWorker(String url){
+            this.url = url;
+        }
+
+        public void closeStream(){
+            try {
+                urlStream.close();
+            } catch (IOException ex) {
+                System.err.println("oh fuck: " + ex.getMessage());
+            }
+        }
+
+        @Override
+        protected String doInBackground() throws Exception {
+            try {
+                    URLConnection urlConn = new URL(url).openConnection();
+                    urlConn.setReadTimeout(20000);
+                    if (!urlConn.getContentType().startsWith("text")) {
+                        return null;
+                    }
+                    urlStream = urlConn.getURL().openStream();
+                    Scanner sc = new Scanner(urlStream);
+                    String titleTag = "";
+                    boolean append = false;
+                    while (sc.hasNext()) {
+                        String line = sc.nextLine().trim();
+                        if (line.toLowerCase().contains("<title")) {
+                            append = true;
+                        }
+                        if (append) {
+                            titleTag += line;
+                        }
+                        if (line.toLowerCase().contains("</title")) {
+                            append = false;
+                        }
+                        if (titleTag.length() > 200) {
+                            titleTag += "...";
+                            break;
+                        }
+                    }
+                    titleTag = titleTag.replaceAll("</title>.*|</TITLE>.*", "").
+                            replaceAll(".*<title.*>|.*<TITLE.*>", "").trim();
+                    return titleTag;
+                } catch (IOException ex) {
+                    return "";
+                }
+        }
+
     }
 }
