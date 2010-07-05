@@ -21,6 +21,8 @@ public class RoulStat {
         highestDeath = 0;
         highestSurv = 0;
         mostShots = 0;
+        totalBullets = 0;
+        avgChamber = 0;
     }
 
     private int deaths = 0;
