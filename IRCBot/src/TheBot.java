@@ -34,10 +34,14 @@ public class TheBot extends PircBot {
        add("admin login here");
     }};
     private static final List<String> ignoreWords = new LinkedList<String>(){{
-       add("the");
-       add("and");
-       add("for");
-       add("you");
+       //add other words you would like ignored in the word count here
+       add("the");add("and");
+       add("for");add("you");
+       add("that");add("just");
+       add("have");add("with");
+       add("like");add("what");
+       add("this");add("but");
+       add("was");add("are");
     }};
     private static final String roulStatsFile = "./roul.txt";
     private static final String karmaFile = "./karma.txt";
@@ -249,8 +253,14 @@ public class TheBot extends PircBot {
                 String[] parts = message.split(" ");
                 helpMessage(parts, channel);
             }
-            if(message.equals("wstats")){
-                sendMessage(channel, "Ten most commonly used words: " + getWStatsStr());
+            if (message.startsWith("wstats")) {
+                String[] parts = message.split(" ");
+                if (parts.length == 1) {
+                    sendMessage(channel, "Ten most commonly used words: " + getWStatsStr());
+                }else{
+                    sendMessage(channel, (wcMap.get(parts[1]) == null ?
+                        "0" : wcMap.get(parts[1])) + " uses of " + parts[1] + " recorded.");
+                }
             }
             return; //was a command, dont count it in word stats
         }else if(message.contains("http://") || message.contains("https://")){
@@ -265,14 +275,10 @@ public class TheBot extends PircBot {
                 sendMessage(channel, "You can't change your own karma.");
                 karmaAdd = -1;
                 name += "-";
-                if(karmaQ.size() > 5){
-                    sendMessage(channel, "Karma queue is full. Stop spamming.");
-                }else{
-                    karmaQ.add(name);
-                }
-            } else {
+                karmaQ.add(name);
+            }else{
                  name += message.charAt(message.length() - 1);
-                if(karmaQ.size() > 5){
+                if(karmaQ.size() > 3){
                     sendMessage(channel, "Karma queue is full. Stop spamming.");
                 }else{
                     karmaQ.add(name);
@@ -282,10 +288,10 @@ public class TheBot extends PircBot {
         String[] parts = message.toLowerCase().replaceAll(",", " ").
                 replaceAll("\\x2E{2,}+", " ").split(" ");
         for(int i = 0;i < parts.length; i++){
-            if(parts[i].contains("http:") || parts[i].contains("https:")){
+            if(parts[i].contains("http:") || parts[i].contains("https:") || parts[i].matches("[0-9]*")){
                 parts[i] = "";
             }else{
-                parts[i] = parts[i].replaceAll("[^a-z0-9'\\s\\x2D]", "");
+                parts[i] = parts[i].replaceAll("[^a-z0-9\\s\\x2D{1}]", "");
             }
         }
         wordCount(parts);
@@ -364,7 +370,14 @@ public class TheBot extends PircBot {
                 String line = in.readLine();
                 String[] parts = line.split("[\\s]");
                 if(parts.length != 2) continue;
-                wcMap.put(parts[0], Integer.valueOf(parts[1]));
+                parts[0] = parts[0].replaceAll("[^a-z0-9\\s\\x2D{1}]", "");
+                if(parts[0].matches("[0-9]*")) continue;
+                if(parts[0].length() < 3 || ignoreWords.contains(parts[0]))continue;
+                if(wcMap.get(parts[0]) != null){//combine entries for the same word, should they happen
+                    wcMap.put(parts[0], Integer.valueOf(parts[1]) + wcMap.get(parts[0]));
+                }else{
+                    wcMap.put(parts[0], Integer.valueOf(parts[1]));
+                }
             }
             in.close();
         } catch (IOException ex) {
@@ -565,46 +578,48 @@ public class TheBot extends PircBot {
 
         public void closeStream(){
             try {
-                urlStream.close();
+                if(urlStream != null){
+                    urlStream.close();
+                }
             } catch (IOException ex) {
-                System.err.println("oh fuck: " + ex.getMessage());
+                System.err.println("Error closing stream: " + ex.getMessage());
             }
         }
 
         @Override
         protected String doInBackground() throws Exception {
             try {
-                    URLConnection urlConn = new URL(url).openConnection();
-                    urlConn.setReadTimeout(20000);
-                    if (!urlConn.getContentType().startsWith("text")) {
-                        return null;
-                    }
-                    urlStream = urlConn.getURL().openStream();
-                    Scanner sc = new Scanner(urlStream);
-                    String titleTag = "";
-                    boolean append = false;
-                    while (sc.hasNext()) {
-                        String line = sc.nextLine().trim();
-                        if (line.toLowerCase().contains("<title")) {
-                            append = true;
-                        }
-                        if (append) {
-                            titleTag += line;
-                        }
-                        if (line.toLowerCase().contains("</title")) {
-                            append = false;
-                        }
-                        if (titleTag.length() > 200) {
-                            titleTag += "...";
-                            break;
-                        }
-                    }
-                    titleTag = titleTag.replaceAll("</title>.*|</TITLE>.*", "").
-                            replaceAll(".*<title.*>|.*<TITLE.*>", "").trim();
-                    return titleTag;
-                } catch (IOException ex) {
-                    return "";
+                URLConnection urlConn = new URL(url).openConnection();
+                urlConn.setReadTimeout(20000);
+                if (!urlConn.getContentType().startsWith("text")) {
+                    return null;
                 }
+                urlStream = urlConn.getURL().openStream();
+                Scanner sc = new Scanner(urlStream);
+                String titleTag = "";
+                boolean append = false;
+                while (sc.hasNext()) {
+                    String line = sc.nextLine().trim();
+                    if (line.toLowerCase().contains("<title")) {
+                        append = true;
+                    }
+                    if (append) {
+                        titleTag += line;
+                    }
+                    if (line.toLowerCase().contains("</title")) {
+                        append = false;
+                    }
+                    if (titleTag.length() > 200) {
+                        titleTag += "...";
+                        break;
+                    }
+                }
+                titleTag = titleTag.replaceAll("</title>.*|</TITLE>.*", "").
+                        replaceAll(".*<title.*>|.*<TITLE.*>", "").trim();
+                return titleTag;
+            } catch (IOException ex) {
+                return "";
+            }
         }
 
     }
